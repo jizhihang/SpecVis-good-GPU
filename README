@@ -1,0 +1,12 @@
+This software requires at least OpenGL 3.0 and an nVidia graphics card with compute capability 1.0.  Any GeForce made in the last 5-6 years should work.
+
+Just create a build environment with CMake and compile!
+
+SpecVis requires the following libraries:
+
+GLEW (OpenGL Extension Wrangler) http://glew.sourceforge.net/
+Qt http://qt-project.org/
+RTS (my personal codebase) https://github.com/dmayerich/RTS
+CUDA http://www.nvidia.com/object/cuda_home_new.html
+
+If CMake is unable to find these, make sure to specify their locations.
