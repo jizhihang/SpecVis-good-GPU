@@ -1,7 +1,7 @@
-void gpuUploadBasePts(unsigned int** gpuBasePts, unsigned int &nBasePts)
+void gpuUploadBasePts(int m, unsigned int** gpuBasePts, unsigned int &nBasePts)
 {
     //get the current metric
-    int m = P.selectedMetric;
+    //int m = P.selectedMetric;
 
 	//store the number of baseline points
 	nBasePts = P.metricList[m].baselinePoints.size();
@@ -15,7 +15,7 @@ void gpuUploadBasePts(unsigned int** gpuBasePts, unsigned int &nBasePts)
 	HANDLE_ERROR(cudaMalloc(gpuBasePts, sizeof(unsigned int) * nBasePts));
 
 	//copy the baseline points into a linear array
-	for(int i=0; i<nBasePts; i++)
+	for(unsigned int i=0; i<nBasePts; i++)
 	{
 		cpuBasePts[i] = sortedPts[i];
 		printf("BP: %d\n", cpuBasePts[i]);
@@ -26,9 +26,9 @@ void gpuUploadBasePts(unsigned int** gpuBasePts, unsigned int &nBasePts)
 
 }
 
-__global__ void kernelGetSpectrum(precision* gpuSpectrum, precision* gpuData, int x, int y,
+__global__ void kernelGetSpectrum(_precision* gpuSpectrum, _precision* gpuData, int x, int y,
 								int samples, int lines, int bands, 
-								unsigned int* gpuBasePts, unsigned int nBasePts, precision* gpuReference)
+								unsigned int* gpuBasePts, unsigned int nBasePts, _precision* gpuReference)
 {
 	int ib = blockIdx.x * blockDim.x + threadIdx.x;
 	if(ib >= bands) return;
@@ -36,11 +36,11 @@ __global__ void kernelGetSpectrum(precision* gpuSpectrum, precision* gpuData, in
 	int i = ib * samples * lines + y * samples + x;
 
 	//compute the reference (1.0 if no reference)
-	precision vRef = 1.0;
+	_precision vRef = 1.0;
 	if(gpuReference != NULL)
 		vRef = gpuReference[y * samples + x];
 
-	precision vBaseline;
+	_precision vBaseline;
 	//spectrum is unchaged if there are no baseline points
 	if(nBasePts == 0)
 		vBaseline = 0;
@@ -56,8 +56,8 @@ __global__ void kernelGetSpectrum(precision* gpuSpectrum, precision* gpuData, in
 		unsigned int in = 0;
 		while(gpuBasePts[in] <= ib) in++;
 
-		precision vUpper = gpuData[gpuBasePts[in] * samples * lines + y * samples + x];
-		precision vLower = gpuData[gpuBasePts[in-1] * samples * lines + y * samples + x];
+		_precision vUpper = gpuData[gpuBasePts[in] * samples * lines + y * samples + x];
+		_precision vLower = gpuData[gpuBasePts[in-1] * samples * lines + y * samples + x];
 		float a = (float)(ib - gpuBasePts[in-1])/(float)(gpuBasePts[in] - gpuBasePts[in-1]);
 		vBaseline = a * vUpper + (1.0 - a) * vLower;
 	}
@@ -65,16 +65,24 @@ __global__ void kernelGetSpectrum(precision* gpuSpectrum, precision* gpuData, in
 	gpuSpectrum[ib] = (gpuData[i] - vBaseline)/vRef;
 }
 
-void gpuGetSpectrum(precision* cpuSpectrum)
+void gpuGetSpectrum(_precision* cpuSpectrum)
 {
     //return an array of zeros if the current point is out of bounds
-    if(P.currentX < 0 || P.currentX >= P.dim.x || P.currentY < 0 || P.currentY >= P.dim.y)
+    if(P.currentX >= P.dim.x || P.currentY >= P.dim.y)
     {
-        memset(cpuSpectrum, 0, sizeof(precision) * P.dim.z);
+        memset(cpuSpectrum, 0, sizeof(_precision) * P.dim.z);
         return;
     }
 
-	int m = P.selectedMetric;
+	//draw the selected metric if in metric mode
+	int m;
+	if(P.displayMode == displayMetrics)
+		m = P.selectedMetric;
+	else if(P.displayMode == displayTF)
+	{
+		int tf = P.selectedTF;
+		m = P.tfList[tf].sourceMetric;
+	}
 
     //handle baseline points
     unsigned int nBasePts;
@@ -85,14 +93,14 @@ void gpuGetSpectrum(precision* cpuSpectrum)
     //if metrics are being displayed, there may be baseline points
     else
         //call the function to upload them
-        gpuUploadBasePts(&gpuBasePts, nBasePts);
+        gpuUploadBasePts(m, &gpuBasePts, nBasePts);
 
 	//allocate GPU space for the spectrum
-	precision* gpuSpectrum;
-	cudaMalloc(&gpuSpectrum, sizeof(precision) * P.dim.z);
+	_precision* gpuSpectrum;
+	cudaMalloc(&gpuSpectrum, sizeof(_precision) * P.dim.z);
 
 	//get the reference pointer (if there is one)
-	precision* gpuRef = NULL;
+	_precision* gpuRef = NULL;
 	if(P.displayMode == displayMetrics || P.displayMode == displayTF)
 	{
 		int r = P.metricList[m].reference;
@@ -108,7 +116,7 @@ void gpuGetSpectrum(precision* cpuSpectrum)
 								gpuBasePts, nBasePts, gpuRef);
 
 	//copy the spectrum to the CPU
-	cudaMemcpy(cpuSpectrum, gpuSpectrum, sizeof(precision) * P.dim.z, cudaMemcpyDeviceToHost);
+	cudaMemcpy(cpuSpectrum, gpuSpectrum, sizeof(_precision) * P.dim.z, cudaMemcpyDeviceToHost);
 	cudaFree(gpuSpectrum);
 	cudaFree(gpuBasePts);
 }

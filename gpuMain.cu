@@ -3,7 +3,7 @@
 #include "parameters.h"
 extern parameterStruct P;
 
-texture<precision, 3, cudaReadModeElementType> texDataSet;
+texture<_precision, 3, cudaReadModeElementType> texDataSet;
 
 #include <cublas_v2.h>
 #include <cudaHandleError.h>
@@ -13,4 +13,5 @@ texture<precision, 3, cudaReadModeElementType> texDataSet;
 #include "gpuComputeSpectrum.h"
 #include "gpuComputeHistogram.h"
 #include "gpuComputeMetric.h"
+#include "gpuComputeTF.h"
 

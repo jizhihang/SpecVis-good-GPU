@@ -18,14 +18,17 @@ struct metricStruct
         unsigned int bandwidth;
 
 		//visualization
-		precision scaleLow;
-		precision scaleHigh;
+		_precision scaleLow;
+		_precision scaleHigh;
 
         //id of the reference metric
         int reference;
 
+        //minimum reference value that sets the normalized value to zero
+        _precision refEpsilon;
+
         //gpu data
-        precision* gpuMetric;
+        _precision* gpuMetric;
 
         metricStruct()
         {
@@ -34,6 +37,7 @@ struct metricStruct
             band = 0;
             bandwidth = 1;
             reference = -1;
+            refEpsilon = (_precision)0.001;
 
 			scaleLow = 0;
 			scaleHigh = 1;

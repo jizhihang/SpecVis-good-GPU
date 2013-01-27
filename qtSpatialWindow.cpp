@@ -4,6 +4,7 @@
 void gpuRawToBuffer();
 void gpuComputeMetric(unsigned int m);
 void gpuMetricToBuffer(unsigned int m);
+void gpuTFToBuffer();
 
 //constructor
 qtSpatialWindow::qtSpatialWindow(QWidget *parent)
@@ -136,6 +137,11 @@ void qtSpatialWindow::paintGL()
 		gpuComputeMetric(P.selectedMetric);
 		gpuMetricToBuffer(P.selectedMetric);
 	}
+	if(P.displayMode == displayTF)
+	{
+		gpuComputeMetric(P.tfList[P.selectedTF].sourceMetric);
+		gpuTFToBuffer();
+	}
 
 	renderBuffer();
 
@@ -194,7 +200,7 @@ void qtSpatialWindow::mouseMoveEvent(QMouseEvent *event)
 
 void qtSpatialWindow::wheelEvent(QWheelEvent *event)
 {
-	float dz = 0.1;
+	float dz = 0.1f;
 	if(event->delta() < 0)
 	{
 		P.histWindow -= P.histWindow * 0.25;

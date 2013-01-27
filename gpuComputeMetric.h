@@ -1,5 +1,5 @@
-void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, precision* gpuReference,
-									unsigned int startBand, unsigned int endBand, 
+void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, _precision* gpuReference, _precision refEpsilon,
+									unsigned int startBand, unsigned int endBand,
 									unsigned int* basePts, unsigned int nBasePts,
 									unsigned int lines, unsigned int samples, unsigned int bands)
 {
@@ -11,13 +11,13 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 	int iMetric = iv * samples + iu;
 
 	//compute the reference (1.0 if no reference)
-	precision vRef = 1.0;
+	_precision vRef = 1.0;
 	if(gpuReference != NULL)
 		vRef = gpuReference[iMetric];
 
 	//find the initial baseline function
 	int iNextBase = -1;
-	precision vBase, vSlope;
+	_precision vBase, vSlope;
 	float a = 0;
 	if(nBasePts == 0)
 	{
@@ -44,8 +44,8 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 			iNextBase = 0;
 			while(startBand >= basePts[iNextBase]) iNextBase++;
 			a = (float)((float)basePts[iNextBase] - (float)startBand)/(float)((float)basePts[iNextBase] - (float)basePts[iNextBase-1]);
-			precision lowBase = gpuData[basePts[iNextBase-1] * samples * lines + iv * samples + iu];
-			precision highBase = gpuData[basePts[iNextBase] * samples * lines + iv * samples + iu];
+			_precision lowBase = gpuData[basePts[iNextBase-1] * samples * lines + iv * samples + iu];
+			_precision highBase = gpuData[basePts[iNextBase] * samples * lines + iv * samples + iu];
 			vBase = a * lowBase + (1.0 - a) * highBase;
 			vSlope = (highBase - lowBase)/(float)(basePts[iNextBase] - basePts[iNextBase-1]);
 		}
@@ -53,9 +53,9 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 
 
 	//iterate through each band, summing the results
-	precision vSum = 0.0;
+	_precision vSum = 0.0;
 	int ib;
-	unsigned int nextBase = -1;
+	int nextBase = -1;
 	if(iNextBase != -1)
 		nextBase = basePts[iNextBase];
 	for(int b = startBand; b <= endBand; b++)
@@ -64,7 +64,10 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 		ib = b * samples * lines + iv * samples + iu;
 
 		//integrate
-		vSum += (gpuData[ib] - vBase)/vRef;
+		if(abs(vRef) > refEpsilon)
+            vSum += (gpuData[ib] - vBase)/vRef;
+		else
+			vSum = nanf("_precision");
 
 		//increment the baseline function
 		vBase += vSlope;
@@ -81,8 +84,8 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 			else
 			{
 				a = (float)(basePts[iNextBase] - startBand)/(float)(basePts[iNextBase] - basePts[iNextBase-1]);
-				precision lowBase = gpuData[basePts[iNextBase-1] * samples * lines + iv * samples + iu];
-				precision highBase = gpuData[basePts[iNextBase] * samples * lines + iv * samples + iu];
+				_precision lowBase = gpuData[basePts[iNextBase-1] * samples * lines + iv * samples + iu];
+				_precision highBase = gpuData[basePts[iNextBase] * samples * lines + iv * samples + iu];
 				vBase = a * lowBase + (1.0 - a) * highBase;
 				vSlope = (highBase - lowBase)/(float)(basePts[iNextBase] - basePts[iNextBase-1]);
 			}
@@ -94,26 +97,27 @@ void __global__ kernelComputeMetric(precision* gpuMetric, precision* gpuData, pr
 
 void gpuComputeMetric(unsigned int m)
 {
-	size_t size = sizeof(precision) * P.dim.x * P.dim.y;
+	size_t size = sizeof(_precision) * P.dim.x * P.dim.y;
 
 	//allocate memory if necessary
 	if(P.metricList[m].gpuMetric == NULL)
 		HANDLE_ERROR(cudaMalloc(&P.metricList[m].gpuMetric, size));
 
 	//simplify
-	precision* gpuMetricPtr = P.metricList[m].gpuMetric;
+	_precision* gpuMetricPtr = P.metricList[m].gpuMetric;
 
 	//copy the current metric's baseline points to the GPU
 	unsigned int* gpuBasePts;
 	unsigned int nBasePts;
-	gpuUploadBasePts(&gpuBasePts, nBasePts);
+	gpuUploadBasePts(m, &gpuBasePts, nBasePts);
 
 	//compute the starting and ending band for the metric
 	unsigned int startBand = P.metricList[m].band - P.metricList[m].bandwidth/2;
 	unsigned int endBand = startBand + P.metricList[m].bandwidth - 1;
+	_precision refEpsilon = P.metricList[m].refEpsilon;
 
 	//get the reference pointer (if there is one)
-	precision* gpuRef = NULL;
+	_precision* gpuRef = NULL;
 	int r = P.metricList[m].reference;
 	if(r != -1)
 		gpuRef = P.metricList[r].gpuMetric;
@@ -121,8 +125,8 @@ void gpuComputeMetric(unsigned int m)
 	//create the thread geometry
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(P.dim.x / dimBlock.x + 1, P.dim.y / dimBlock.y + 1);
-	kernelComputeMetric<<<dimGrid, dimBlock>>>(gpuMetricPtr, P.gpuData, gpuRef,
-											   startBand, endBand, 
+	kernelComputeMetric<<<dimGrid, dimBlock>>>(gpuMetricPtr, P.gpuData, gpuRef, refEpsilon,
+											   startBand, endBand,
 											   gpuBasePts, nBasePts,
 											   P.dim.x, P.dim.y, P.dim.z);
 

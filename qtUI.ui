@@ -485,6 +485,9 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnRemoveMetric">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>90</x>
@@ -498,6 +501,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbSelectedMetric">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -508,6 +514,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbMetricType">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>230</x>
@@ -591,6 +600,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbReferenceMetric">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -705,6 +717,9 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnRenameMetric">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>230</x>
@@ -718,6 +733,9 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnAddBaselinePoint">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>240</x>
@@ -731,6 +749,9 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnRemoveBaselinePoint">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>240</x>
@@ -775,6 +796,41 @@
       <string>Duplicate</string>
      </property>
     </widget>
+    <widget class="QDoubleSpinBox" name="spinReferenceEpsilon">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="geometry">
+      <rect>
+       <x>60</x>
+       <y>140</y>
+       <width>62</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="decimals">
+      <number>3</number>
+     </property>
+     <property name="singleStep">
+      <double>0.001000000000000</double>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_19">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>140</y>
+       <width>91</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Epsilon</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+    </widget>
    </widget>
    <widget class="QGroupBox" name="groupBox_4">
     <property name="geometry">
@@ -789,6 +845,9 @@
      <string>Transfer Functions</string>
     </property>
     <widget class="QPushButton" name="btnRemoveTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>90</x>
@@ -802,6 +861,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbTransferFuncType">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>230</x>
@@ -812,6 +874,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbSelectedTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -822,11 +887,14 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnRenameTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
-       <x>230</x>
+       <x>160</x>
        <y>50</y>
-       <width>71</width>
+       <width>61</width>
        <height>21</height>
       </rect>
      </property>
@@ -835,6 +903,9 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnAddTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -848,6 +919,9 @@
      </property>
     </widget>
     <widget class="QDoubleSpinBox" name="spinMinTFValue">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>320</x>
@@ -856,8 +930,20 @@
        <height>22</height>
       </rect>
      </property>
+     <property name="minimum">
+      <double>-99999.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>99999.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
+     </property>
     </widget>
     <widget class="QDoubleSpinBox" name="spinMaxTFValue">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>320</x>
@@ -866,8 +952,20 @@
        <height>22</height>
       </rect>
      </property>
+     <property name="minimum">
+      <double>-99999.000000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>99999.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.010000000000000</double>
+     </property>
     </widget>
     <widget class="QCheckBox" name="chkDisplayTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>320</x>
@@ -881,12 +979,15 @@
      </property>
     </widget>
     <widget class="QPushButton" name="btnColorTF">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>230</x>
        <y>100</y>
        <width>71</width>
-       <height>31</height>
+       <height>21</height>
       </rect>
      </property>
      <property name="styleSheet">
@@ -897,6 +998,9 @@
      </property>
     </widget>
     <widget class="QComboBox" name="cmbTFSourceMetric">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
      <property name="geometry">
       <rect>
        <x>10</x>
@@ -948,6 +1052,38 @@
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_20">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>20</y>
+       <width>41</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Max</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_21">
+     <property name="geometry">
+      <rect>
+       <x>400</x>
+       <y>50</y>
+       <width>41</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Min</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
    </widget>

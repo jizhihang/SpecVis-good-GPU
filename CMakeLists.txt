@@ -45,12 +45,13 @@ include_directories(
 #Assign source files to the appropriate variables
 file(GLOB SRC_CPP "*.cpp")
 file(GLOB SRC_H "*.h")
+file(GLOB MOC_H "qt*.h")
 file(GLOB SRC_UI "*.ui")
 file(GLOB SRC_QRC "*.qrc")
 file(GLOB SRC_CU "*.cu")
 
 #determine which source files have to be moc'd
-Qt4_wrap_cpp(UI_MOC ${SRC_H})
+Qt4_wrap_cpp(UI_MOC ${MOC_H})
 Qt4_wrap_ui(UI_H ${SRC_UI})
 Qt4_add_resources(ALL_RCC ${ALL_QRC})
 

@@ -36,6 +36,12 @@ public:
 
 		ui.cmbReferenceMetric->addItem("None", -1);
 
+		//add transfer function types
+		ui.cmbTransferFuncType->addItem("Constant", tfConstant);
+		ui.cmbTransferFuncType->addItem("Linear - Up", tfLinearUp);
+		ui.cmbTransferFuncType->addItem("Linear - Down", tfLinearDown);
+		ui.cmbTransferFuncType->addItem("Gaussian", tfGaussian);
+
 		updating = false;
     }
     ~QtUI()
@@ -62,7 +68,9 @@ public:
         for(unsigned int m=0; m<nMetrics; m++)
 		{
             ui.cmbSelectedMetric->addItem(P.metricList[m].name.c_str(), m);
-			ui.cmbReferenceMetric->addItem(P.metricList[m].name.c_str(), m);
+
+			if(P.selectedMetric != m)
+				ui.cmbReferenceMetric->addItem(P.metricList[m].name.c_str(), m);
 		}
 
         //make the selected metric active
@@ -90,9 +98,14 @@ public:
             ui.cmbSelectedTF->addItem(P.tfList[tf].name.c_str(), tf);
 		}
 
-        //make the selected metric active
+        //make the selected TF active
         if(nTF > 0)
             ui.cmbSelectedTF->setCurrentIndex(P.selectedTF);
+
+		//add metrics to the source metric combo box
+		unsigned int nMetrics = P.metricList.size();
+		for(unsigned int m=0; m<nMetrics; m++)
+			ui.cmbTFSourceMetric->addItem(P.metricList[m].name.c_str(), m);
 
 		updating = false;
         UpdateUI();
@@ -115,6 +128,37 @@ public:
         ui.txtLines->setText(QString::number(P.dim.y));
         ui.txtBands->setText(QString::number(P.dim.z));
 
+        //enable relevant widgets
+        //if there is a metric, enable metric widgets
+        bool metricControls = false;
+        if(P.metricList.size() != 0) metricControls = true;
+        ui.btnRemoveMetric->setEnabled(metricControls);
+        ui.btnDuplicateMetric->setEnabled(metricControls);
+        ui.cmbMetricType->setEnabled(metricControls);
+		ui.cmbSelectedMetric->setEnabled(metricControls);
+        ui.btnRenameMetric->setEnabled(metricControls);
+        ui.spinMetricBand->setEnabled(metricControls);
+        ui.spinMetricBandwidth->setEnabled(metricControls);
+        ui.cmbReferenceMetric->setEnabled(metricControls);
+        ui.spinReferenceEpsilon->setEnabled(metricControls);
+        ui.btnAddBaselinePoint->setEnabled(metricControls);
+        ui.btnRemoveBaselinePoint->setEnabled(metricControls);
+        ui.radDisplayMetrics->setEnabled(metricControls);
+		ui.btnAddTF->setEnabled(metricControls);
+
+        bool tfControls = false;
+		if(P.tfList.size() != 0) tfControls = true;
+		ui.cmbSelectedTF->setEnabled(tfControls);
+		ui.cmbTransferFuncType->setEnabled(tfControls);
+		ui.spinMaxTFValue->setEnabled(tfControls);
+		ui.spinMinTFValue->setEnabled(tfControls);
+		ui.chkDisplayTF->setEnabled(tfControls);
+		ui.btnColorTF->setEnabled(tfControls);
+		ui.btnRemoveTF->setEnabled(tfControls);
+		ui.btnRenameTF->setEnabled(tfControls);
+		ui.cmbTFSourceMetric->setEnabled(tfControls);
+
+
 		if(P.displayMode == displayRaw)
 		{
 			ui.spinScaleMin->setValue(P.scaleMin);
@@ -124,6 +168,7 @@ public:
 		{
 			ui.spinScaleMin->setValue(P.metricList[P.selectedMetric].scaleLow);
 			ui.spinScaleMax->setValue(P.metricList[P.selectedMetric].scaleHigh);
+			ui.spinReferenceEpsilon->setValue(P.metricList[P.selectedMetric].refEpsilon);
 		}
 		ui.spinSpectralMin->setValue(P.spectralMin);
 		ui.spinSpectralMax->setValue(P.spectralMax);
@@ -141,9 +186,6 @@ public:
 		ui.spinBaselinePointPosition->setMaximum(P.dim.z-1);
         if(P.metricList.size() > 0)
         {
-            ui.radDisplayMetrics->setEnabled(true);
-			ui.spinMetricBand->setEnabled(true);
-			ui.spinMetricBandwidth->setEnabled(true);
             int m = P.selectedMetric;
             ui.spinMetricBand->setValue(P.metricList[m].band);
             ui.spinMetricBandwidth->setValue(P.metricList[m].bandwidth);
@@ -183,12 +225,15 @@ public:
         }
 
 		//transfer functions
-		if(P.selectedTF != -1)
+		if(P.tfList.size() != 0)
 		{
 			int tf = P.selectedTF;
 			QString style = "background-color: rgb(%1, %2, %3);";
 			ui.btnColorTF->setStyleSheet(style.arg(P.tfList[tf].r).arg(P.tfList[tf].g).arg(P.tfList[tf].b));
+			ui.spinMaxTFValue->setValue(P.tfList[P.selectedTF].tfMax);
+			ui.spinMinTFValue->setValue(P.tfList[P.selectedTF].tfMin);
 		}
+		
 
 		updating = false;
 
@@ -393,7 +438,32 @@ public slots:
 		P.selectedBaselinePoint = 0;
 		//UpdateMetricList();
 		UpdateWindows();
-        UpdateUI();
+        UpdateMetricList();
+	}
+	void on_cmbSelectedTF_currentIndexChanged(int i)
+	{
+		if(updating) return;
+
+		P.selectedTF = i;
+		UpdateWindows();
+		UpdateTFList();
+	}
+	void on_cmbTFSourceMetric_currentIndexChanged(int i)
+	{
+		if(updating) return;
+
+		unsigned int tf = P.selectedTF;
+		P.tfList[tf].sourceMetric = i;
+		UpdateWindows();
+		UpdateUI();
+
+	}
+	void on_cmbTransferFuncType_currentIndexChanged(int i)
+	{
+		if(updating) return;
+		int tf = P.selectedTF;
+		P.tfList[tf].type = (transferFuncType)ui.cmbTransferFuncType->itemData(i).toInt();
+		UpdateSpatialWindow();
 	}
 	void on_cmbMetricType_currentIndexChanged(int i)
 	{
@@ -501,6 +571,16 @@ public slots:
 
 		UpdateWindows();
 	}
+	void on_spinReferenceEpsilon_valueChanged(double d)
+	{
+        if(updating) return;
+        if(P.metricList.size() == 0) return;
+
+        int m = P.selectedMetric;
+        P.metricList[m].refEpsilon = d;
+        UpdateWindows();
+
+	}
 
 	void on_btnColorTF_clicked()
 	{
@@ -517,6 +597,8 @@ public slots:
 		P.tfList[tf].r = selectedColor.red();
 		P.tfList[tf].g = selectedColor.green();
 		P.tfList[tf].b = selectedColor.blue();
+
+		UpdateSpatialWindow();
 
 	}
 	void on_btnAddTF_clicked()
@@ -548,6 +630,7 @@ public slots:
 
         //update the metric list
         UpdateTFList();
+		UpdateWindows();
 	}
 
 };

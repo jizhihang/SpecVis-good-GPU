@@ -2,7 +2,8 @@
 #define DATATYPES_H
 
 //specify the precision (currently 32-bit floating point)
-typedef float precision;
+//typedef float precision;
+#define _precision	float
 typedef int histoPrecision;
 
 #define BUFFER_PIXEL_SIZE		3

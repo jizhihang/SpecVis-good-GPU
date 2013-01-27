@@ -23,8 +23,8 @@ static float clamp(float x, float a, float b)
 struct parameterStruct
 {
 	//data file parameters
-	precision* cpuData;
-	precision* gpuData;
+	_precision* cpuData;
+	_precision* gpuData;
 	cudaArray* gpuDataArray;
 	vector3D<unsigned int> dim;
 	string filename;
@@ -53,18 +53,18 @@ struct parameterStruct
 	cudaGraphicsResource_t gpu_cudaResource;
 
 	//raw data visualization
-	precision scaleMin;
-	precision scaleMax;
+	_precision scaleMin;
+	_precision scaleMax;
 	scaleModeType scaleMode;
 
 	//spectral window
-	precision spectralMin;
-	precision spectralMax;
+	_precision spectralMin;
+	_precision spectralMax;
 
 	//widget parameters
 	unsigned int currentBand;
-	int currentX;
-	int currentY;
+	unsigned int currentX;
+	unsigned int currentY;
 
 	//metrics
 	vector<metricStruct> metricList;

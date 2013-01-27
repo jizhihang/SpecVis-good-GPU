@@ -10,6 +10,8 @@
 
 extern parameterStruct P;
 
+void gpuComputeMetric(unsigned int m);
+
 void LoadData(string filename)
 {
     enviHeaderStruct header;
@@ -34,7 +36,6 @@ loadStatus LoadProject(string filename)
     string line, token;
     string strData;
     int intData;
-    char charData;
     int m = -1; //metric counter
 
     //make sure that this is a valid project file
@@ -90,13 +91,17 @@ loadStatus LoadProject(string filename)
             }
         //get a reference parameter
         if(token.find("reference") != string::npos)
+		{
             convert>>P.metricList[m].reference;
+			convert>>P.metricList[m].refEpsilon;
+		}
 
         token = "";
     }
 
-    //char dataFile[256];
-    //infile.getline(dataFile, 256);
+    //compute every metric so that you can work with TFs and referenced metrics without problems
+	for(unsigned int m = 0; m<P.metricList.size(); m++)
+		gpuComputeMetric(m);
 
     return loadStatusOK;
 
@@ -117,7 +122,7 @@ void SaveProject(string filename)
 
     //output each metric
     unsigned int nMetrics = P.metricList.size();
-    for(int m=0; m<nMetrics; m++){
+    for(unsigned int m=0; m<nMetrics; m++){
         //output the token
         outfile<<endl<<"metric ";
         //output the metric type
@@ -136,12 +141,12 @@ void SaveProject(string filename)
         unsigned int nBasePts = P.metricList[m].baselinePoints.size();
         if(nBasePts > 0)
             outfile<<endl<<"     baseline";
-        for(int b=0; b<nBasePts; b++)
+        for(unsigned int b=0; b<nBasePts; b++)
             outfile<<" "<<P.metricList[m].baselinePoints[b];
 
         //output any reference metric
         if(P.metricList[m].reference > -1)
-            outfile<<endl<<"     reference "<<P.metricList[m].reference;
+            outfile<<endl<<"     reference "<<P.metricList[m].reference<<" "<<P.metricList[m].refEpsilon;
 
     }
 

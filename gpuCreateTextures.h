@@ -5,7 +5,7 @@ void gpuFindBandExtrema(int &iMin, int &iMax, unsigned int band)
     cublasHandle_t handle;
 
 	//find the memory location for the start of the band
-	precision* gpuBandPtr;
+	_precision* gpuBandPtr;
 	gpuBandPtr = P.gpuData + P.dim.x * P.dim.y * band;
 
 	//create a CUBLAS handle
@@ -29,9 +29,9 @@ void gpuFindBandExtrema(int &iMin, int &iMax, unsigned int band)
 
 }
 
-__global__ void kernelRawToBuffer(precision* gpuRaw, unsigned char* buffer,
+__global__ void kernelRawToBuffer(_precision* gpuRaw, unsigned char* buffer,
 					unsigned int samples, unsigned int lines, unsigned int band,
-					precision vMin, precision vMax)
+					_precision vMin, _precision vMax)
 {
 	//get the coordinate of the thread
 	int u = blockIdx.x * blockDim.x + threadIdx.x;
@@ -43,8 +43,8 @@ __global__ void kernelRawToBuffer(precision* gpuRaw, unsigned char* buffer,
 	int iBand = band * (samples * lines);
 	int iRaw = iBand +  v*samples + u;
 
-	precision val = gpuRaw[iRaw];
-	precision valScaled = (val - vMin) / (vMax - vMin);
+	_precision val = gpuRaw[iRaw];
+	_precision valScaled = (val - vMin) / (vMax - vMin);
 
 	int I = valScaled * 255;
 	if(I < 0) I = 0;
@@ -59,7 +59,7 @@ __global__ void kernelRawToBuffer(precision* gpuRaw, unsigned char* buffer,
 void gpuRawToBuffer()
 {
 	//find the band extrema
-	precision vMin, vMax;
+	_precision vMin, vMax;
 	if(P.scaleMode == automatic)
 	{
 		//use CUBLAS to compute the indices of the extrema
@@ -68,8 +68,8 @@ void gpuRawToBuffer()
 
 		//copy the extrema values from the GPU to the CPU
 		unsigned int iBand = P.currentBand * P.dim.x * P.dim.y;
-		cudaMemcpy(&vMin, P.gpuData + iBand + iMin, sizeof(precision), cudaMemcpyDeviceToHost);
-		cudaMemcpy(&vMax, P.gpuData + iBand + iMax, sizeof(precision), cudaMemcpyDeviceToHost);
+		cudaMemcpy(&vMin, P.gpuData + iBand + iMin, sizeof(_precision), cudaMemcpyDeviceToHost);
+		cudaMemcpy(&vMax, P.gpuData + iBand + iMax, sizeof(_precision), cudaMemcpyDeviceToHost);
 
 		//store the results in the parameter structure
 		P.scaleMin = vMin;
@@ -103,8 +103,8 @@ void gpuRawToBuffer()
 	cudaGraphicsUnmapResources(1, &P.gpu_cudaResource, NULL);
 }
 
-void __global__ kernelMetricToBuffer(precision* gpuMetric, unsigned char* gpuBuffer, unsigned int lines, unsigned int samples,
-									 precision scaleLow, precision scaleHigh)
+void __global__ kernelMetricToBuffer(_precision* gpuMetric, unsigned char* gpuBuffer, unsigned int lines, unsigned int samples,
+									 _precision scaleLow, _precision scaleHigh)
 {
 	//get the coordinate of the thread
 	int iu = blockIdx.x * blockDim.x + threadIdx.x;
@@ -113,8 +113,8 @@ void __global__ kernelMetricToBuffer(precision* gpuMetric, unsigned char* gpuBuf
 
 	int i = iv * samples + iu;
 
-	precision val = gpuMetric[i];
-	precision scaledVal = (val - scaleLow)/(scaleHigh - scaleLow) * 255;
+	_precision val = gpuMetric[i];
+	_precision scaledVal = (val - scaleLow)/(scaleHigh - scaleLow) * 255;
 	if(scaledVal < 0)
 		scaledVal = 0;
 	if(scaledVal > 254)
@@ -134,7 +134,7 @@ void gpuMetricToBuffer(unsigned int m)
 	size_t size = P.dim.x * P.dim.y * BUFFER_PIXEL_SIZE;
 
 	//get a pointer to the metric (should already be computed)
-	precision* gpuMetric = P.metricList[m].gpuMetric;
+	_precision* gpuMetric = P.metricList[m].gpuMetric;
 
 	//map the buffer and create a pointer to GPU memory
 	cudaGraphicsMapResources(1, &P.gpu_cudaResource, NULL);

@@ -34,9 +34,9 @@ void gpuFindHistogramExtrema(int &iMin, int &iMax)
 
 }
 
-__global__ void kernelComputeHistogram(precision* data, histoPrecision* histogram,
+__global__ void kernelComputeHistogram(_precision* data, histoPrecision* histogram,
 							unsigned int nBins, unsigned int nSamples, unsigned int nLines, unsigned int nBands,
-							precision vMin, precision vMax, unsigned int histWindow, int px, int py)
+							_precision vMin, _precision vMax, unsigned int histWindow, int px, int py)
 {
     int H[100];
     for(int si=0; si<100; si++)
@@ -51,8 +51,8 @@ __global__ void kernelComputeHistogram(precision* data, histoPrecision* histogra
 	unsigned int iBand = band * nSamples * nLines;
 
 	//determine the bin size
-	precision v;
-	precision binSize = (vMax - vMin) / (nBins + 1);
+	_precision v;
+	_precision binSize = (vMax - vMin) / (nBins + 1);
 
     //determine the rectangle along which the histogram is computed
     unsigned int x, y, i;

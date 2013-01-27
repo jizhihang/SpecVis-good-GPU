@@ -2,7 +2,7 @@
 #include "rts_glBrewer.h"
 #include "CHECK_OPENGL_ERROR.h"
 
-void gpuGetSpectrum(precision* cpuSpectrum);
+void gpuGetSpectrum(_precision* cpuSpectrum);
 void gpuComputeHistogram();
 void gpuHistogramToBuffer();
 
@@ -50,14 +50,14 @@ void qtSpectralWindow::drawHUD()
 	else if(P.displayMode == displayMetrics || P.displayMode == displayTF)
 		pickedBand = P.metricList[P.selectedMetric].band;
 
-	//draw the metric bandwidth if necessary
-	if(P.displayMode == displayMetrics || P.displayMode == displayTF)
+	//draw the metric bandwidth (if rendering the metric)
+	if(P.displayMode == displayMetrics)
 	{
 		int m = P.selectedMetric;
 		int lowBand = P.metricList[m].band - P.metricList[m].bandwidth/2;
 		int highBand = lowBand + P.metricList[m].bandwidth;
 
-		glColor3f(0.3, 0, 0.3);
+		glColor3f(0.1f, 0, 0.1f);
 		glBegin(GL_QUADS);
 			glVertex2f(lowBand, P.spectralMin);
 			glVertex2f(lowBand, P.spectralMax);
@@ -65,44 +65,92 @@ void qtSpectralWindow::drawHUD()
 			glVertex2f(highBand, P.spectralMin);
 		glEnd();
 	}
+
+	//draw the selection region and band line (if rendering transfer functions)
+	if(P.displayMode == displayTF)
+	{
+		int tf = P.selectedTF;
+		int m = P.tfList[tf].sourceMetric;
+		int lowBand = P.metricList[m].band - P.metricList[m].bandwidth/2;
+		int highBand = lowBand + P.metricList[m].bandwidth;
+		_precision lowVal = P.tfList[tf].tfMin;
+		_precision highVal = P.tfList[tf].tfMax;
+		_precision midVal = (highVal - lowVal)/2 + lowVal;
+
+		//draw two boxes, one along the high range and one along the low range
+		
+		glBegin(GL_QUADS);
+			glColor3f(0.2f, 0, 0);
+			glVertex2f(lowBand, midVal);
+			glVertex2f(lowBand, highVal);
+			glVertex2f(highBand, highVal);
+			glVertex2f(highBand, midVal);
+
+			glColor3f(0, 0, 0.2f);
+			glVertex2f(lowBand, lowVal);
+			glVertex2f(lowBand, midVal);
+			glVertex2f(highBand, midVal);
+			glVertex2f(highBand, lowVal);
+		glEnd();
+
+		//draw band lines to indicate source metric position		
+		glBegin(GL_LINES);
+			glColor3f(1, 0, 0);
+			glVertex2f(P.metricList[m].band, midVal);
+			glVertex2f(P.metricList[m].band, highVal);
+			glColor3f(0, 0, 1);
+			glVertex2f(P.metricList[m].band, midVal);
+			glVertex2f(P.metricList[m].band, lowVal);
+		glEnd();
+	}
 	//draw the band line
-	glColor3f(1, 0, 1);
-	glBegin(GL_LINES);
-		glVertex2f(pickedBand, P.spectralMin);
-		glVertex2f(pickedBand, P.spectralMax);
-	glEnd();
+	if(P.displayMode == displayRaw || P.displayMode == displayMetrics)
+	{
+		glColor3f(1, 0, 1);
+		glBegin(GL_LINES);
+			glVertex2f(pickedBand, P.spectralMin);
+			glVertex2f(pickedBand, P.spectralMax);
+		glEnd();
+	}
 
 		
 
 	//draw the intensity extrema
-	precision scaleMin, scaleMax;
+	_precision scaleMin, scaleMax;
 	if(P.displayMode == displayRaw)
 	{
 		scaleMin = P.scaleMin;
 		scaleMax = P.scaleMax;
 	}
-	else if(P.displayMode == displayMetrics || P.displayMode == displayTF)
+	else if(P.displayMode == displayMetrics)
 	{
 		scaleMin = P.metricList[P.selectedMetric].scaleLow;
 		scaleMax = P.metricList[P.selectedMetric].scaleHigh;
 	}
-	glColor3f(1.0, 0.0, 0.0);
-	glBegin(GL_LINES);
-		glVertex2f(0, scaleMax);
-		glVertex2f(P.dim.z, scaleMax);
-	glEnd();
+	if(P.displayMode == displayRaw || P.displayMode == displayMetrics)
+	{
+		glColor3f(1.0, 0.0, 0.0);
+		glBegin(GL_LINES);
+			glVertex2f(0, scaleMax);
+			glVertex2f(P.dim.z, scaleMax);
+		glEnd();
 
-	glColor3f(0.0, 0.0, 1.0);
-	glBegin(GL_LINES);
-		glVertex2f(0, scaleMin);
-		glVertex2f(P.dim.z, scaleMin);
-	glEnd();
+		glColor3f(0.0, 0.0, 1.0);
+		glBegin(GL_LINES);
+			glVertex2f(0, scaleMin);
+			glVertex2f(P.dim.z, scaleMin);
+		glEnd();
+	}
 
 	//draw baseline points
 	if(P.displayMode == displayMetrics || P.displayMode == displayTF)
 	{
-		//simplify
-		int m = P.selectedMetric;
+		//select the metric used to display baseline points
+		int m;
+		if(P.displayMode == displayMetrics)
+			m = P.selectedMetric;
+		else if(P.displayMode == displayTF)
+			m = P.tfList[P.selectedTF].sourceMetric;
 
 		//exit if the current metric has no baseline points
 		if(P.metricList[m].baselinePoints.size() == 0)
@@ -139,8 +187,8 @@ void qtSpectralWindow::drawHUD()
 void qtSpectralWindow::drawSpectrum()
 {
 	//allocate space for the spectral data
-	precision* cpuSpectrum;
-	cpuSpectrum = (precision*)malloc(sizeof(precision) * P.dim.z);
+	_precision* cpuSpectrum;
+	cpuSpectrum = (_precision*)malloc(sizeof(_precision) * P.dim.z);
 
 	//get the spectrum from the GPU-based data set
 	gpuGetSpectrum(cpuSpectrum);
@@ -148,7 +196,7 @@ void qtSpectralWindow::drawSpectrum()
 	//draw the spectrum to the window
 	glColor3f(1.0, 1.0, 1.0);
 	glBegin(GL_LINE_STRIP);
-	for(int b=0; b<P.dim.z; b++)
+	for(unsigned int b=0; b<P.dim.z; b++)
 		glVertex2f(b, cpuSpectrum[b]);
 	glEnd();
 }
@@ -257,19 +305,35 @@ void qtSpectralWindow::mouseAction(QMouseEvent *event)
         {
             //calculate the band clicked by the user
             float a = (float)event->pos().x() / (float)width();
+			if(a < 0) a = 0;
 
-			int pickedBand;
+			unsigned int pickedBand;
 			pickedBand = (int)( a * P.dim.z );
-            if(pickedBand <= 0) pickedBand = 0;
             if(pickedBand >= P.dim.z) pickedBand = P.dim.z - 1;
             
 
 			if(P.displayMode == displayRaw)
 				P.currentBand = pickedBand;
-			else if(P.displayMode == displayMetrics || P.displayMode == displayTF)
+			else if(P.displayMode == displayMetrics)
 			{
 				int m = P.selectedMetric;
 				P.metricList[m].band = pickedBand;
+			}
+			else if(P.displayMode == displayTF)
+			{
+				//set the band value for the source metric
+				int tf = P.selectedTF;
+				int m = P.tfList[tf].sourceMetric;
+				P.metricList[m].band = pickedBand;
+
+				//set the amplitude range for the transfer function
+				float b = ((float)height() - (float)event->pos().y()) / (float)height();
+				//if(b < 0) b = 0;
+				_precision pickedAmplitude;
+				pickedAmplitude = b * (P.spectralMax - P.spectralMin) + P.spectralMin;
+				_precision ampRange = (P.tfList[tf].tfMax - P.tfList[tf].tfMin)/2;
+				P.tfList[tf].tfMin = pickedAmplitude - ampRange;
+				P.tfList[tf].tfMax = pickedAmplitude + ampRange;
 			}
 		}
 		//update the visualization
@@ -299,10 +363,10 @@ void qtSpectralWindow::mouseAction(QMouseEvent *event)
 		{
 			//calculate the band clicked by the user
             float a = (float)event->pos().x() / (float)width();
+			if(a < 0) a = 0;
 
-			int pickedBand;
+			unsigned int pickedBand;
 			pickedBand = (int)( a * P.dim.z );
-            if(pickedBand <= 0) pickedBand = 0;
             if(pickedBand >= P.dim.z) pickedBand = P.dim.z - 1;
 
 			int m = P.selectedMetric;
@@ -322,7 +386,6 @@ void qtSpectralWindow::mouseAction(QMouseEvent *event)
         P.spectralMin += dyMouse * dy;
         UpdateWindows();
         UpdateUI();
-
 	}
 }
 
@@ -352,7 +415,7 @@ void qtSpectralWindow::mouseMoveEvent(QMouseEvent *event)
 }
 void qtSpectralWindow::wheelEvent(QWheelEvent *event)
 {
-	float dz = 0.1;
+	float dz = 0.1f;
 
 	if(event->modifiers().testFlag(Qt::ShiftModifier) &&
 	   P.displayMode == displayMetrics)
@@ -365,6 +428,23 @@ void qtSpectralWindow::wheelEvent(QWheelEvent *event)
 		else
 		{
 			P.metricList[m].bandwidth++;
+		}
+		UpdateWindows();
+	}
+	else if(event->modifiers().testFlag(Qt::ShiftModifier) &&
+	   P.displayMode == displayTF)
+	{
+		int tf = P.selectedTF;
+		_precision ampStep = 0.01 * (P.spectralMax - P.spectralMin);
+		if(event->delta() < 0)
+		{
+			P.tfList[tf].tfMin += ampStep;
+			P.tfList[tf].tfMax -= ampStep;
+		}
+		else
+		{
+			P.tfList[tf].tfMin -= ampStep;
+			P.tfList[tf].tfMax += ampStep;
 		}
 		UpdateWindows();
 	}
