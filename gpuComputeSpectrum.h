@@ -16,10 +16,7 @@ void gpuUploadBasePts(int m, unsigned int** gpuBasePts, unsigned int &nBasePts)
 
 	//copy the baseline points into a linear array
 	for(unsigned int i=0; i<nBasePts; i++)
-	{
 		cpuBasePts[i] = sortedPts[i];
-		printf("BP: %d\n", cpuBasePts[i]);
-	}
 
 	//copy to the gpu
 	HANDLE_ERROR(cudaMemcpy(*gpuBasePts, cpuBasePts, sizeof(unsigned int) * nBasePts, cudaMemcpyHostToDevice));
@@ -27,7 +24,7 @@ void gpuUploadBasePts(int m, unsigned int** gpuBasePts, unsigned int &nBasePts)
 }
 
 __global__ void kernelGetSpectrum(_precision* gpuSpectrum, _precision* gpuData, int x, int y,
-								int samples, int lines, int bands, 
+								int samples, int lines, int bands,
 								unsigned int* gpuBasePts, unsigned int nBasePts, _precision* gpuReference)
 {
 	int ib = blockIdx.x * blockDim.x + threadIdx.x;
@@ -112,7 +109,7 @@ void gpuGetSpectrum(_precision* cpuSpectrum)
 	dim3 dimBlock(BLOCK_SIZE, 1);
 	dim3 dimGrid(P.dim.z / dimBlock.x + 1, 1);
 	kernelGetSpectrum<<<dimGrid, dimBlock>>>(gpuSpectrum, P.gpuData, P.currentX, P.currentY,
-								P.dim.x, P.dim.y, P.dim.z, 
+								P.dim.x, P.dim.y, P.dim.z,
 								gpuBasePts, nBasePts, gpuRef);
 
 	//copy the spectrum to the CPU

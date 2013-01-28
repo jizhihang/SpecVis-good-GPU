@@ -48,7 +48,7 @@ void gpuTFToBuffer()
 	int tf = P.selectedTF;
 	int m = P.tfList[tf].sourceMetric;
 	transferFuncType tfType = P.tfList[tf].type;
-	
+
 	//calculate the size of the buffer
 	size_t size = P.dim.x * P.dim.y * BUFFER_PIXEL_SIZE;
 
@@ -61,9 +61,8 @@ void gpuTFToBuffer()
 	//cudaMemset(gpuPtr, 128, size);
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(P.dim.x / dimBlock.x + 1, P.dim.y / dimBlock.y + 1);
-	printf("min: %f, max: %f\n", P.tfList[tf].tfMin, P.tfList[tf].tfMax);
-	kernelTFToBuffer<<<dimGrid, dimBlock>>>(P.metricList[m].gpuMetric, gpuPtr, 
-											P.dim.x, P.dim.y, 
+	kernelTFToBuffer<<<dimGrid, dimBlock>>>(P.metricList[m].gpuMetric, gpuPtr,
+											P.dim.x, P.dim.y,
 											tfType, P.tfList[tf].tfMin, P.tfList[tf].tfMax,
 											P.tfList[tf].r, P.tfList[tf].g, P.tfList[tf].b);
 

@@ -1,4 +1,5 @@
-void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, _precision* gpuReference, _precision refEpsilon,
+void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, metricType type,
+                                    _precision* gpuReference, _precision refEpsilon,
 									unsigned int startBand, unsigned int endBand,
 									unsigned int* basePts, unsigned int nBasePts,
 									unsigned int lines, unsigned int samples, unsigned int bands)
@@ -54,6 +55,8 @@ void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, 
 
 	//iterate through each band, summing the results
 	_precision vSum = 0.0;
+	_precision vNuSum = 0.0;
+	_precision v;
 	int ib;
 	int nextBase = -1;
 	if(iNextBase != -1)
@@ -65,7 +68,11 @@ void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, 
 
 		//integrate
 		if(abs(vRef) > refEpsilon)
-            vSum += (gpuData[ib] - vBase)/vRef;
+		{
+            v = (gpuData[ib] - vBase)/vRef;
+            vSum += v;
+            vNuSum += b * v;
+        }
 		else
 			vSum = nanf("_precision");
 
@@ -91,8 +98,13 @@ void __global__ kernelComputeMetric(_precision* gpuMetric, _precision* gpuData, 
 			}
 		}
 	}
-
-	gpuMetric[iMetric] =  vSum / (float)(endBand - startBand + 1);
+    if(type == metricMean)
+        gpuMetric[iMetric] =  vSum / (float)(endBand - startBand + 1);
+    else if (type == metricCentroid)
+    {
+        float vBand = vNuSum / vSum;
+        gpuMetric[iMetric] = (vBand - (float)startBand) / (float)(endBand - startBand + 1);
+    }
 }
 
 void gpuComputeMetric(unsigned int m)
@@ -125,7 +137,8 @@ void gpuComputeMetric(unsigned int m)
 	//create the thread geometry
 	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 dimGrid(P.dim.x / dimBlock.x + 1, P.dim.y / dimBlock.y + 1);
-	kernelComputeMetric<<<dimGrid, dimBlock>>>(gpuMetricPtr, P.gpuData, gpuRef, refEpsilon,
+	kernelComputeMetric<<<dimGrid, dimBlock>>>(gpuMetricPtr, P.gpuData, P.metricList[m].type,
+                                               gpuRef, refEpsilon,
 											   startBand, endBand,
 											   gpuBasePts, nBasePts,
 											   P.dim.x, P.dim.y, P.dim.z);
