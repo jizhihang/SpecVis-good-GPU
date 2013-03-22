@@ -156,6 +156,7 @@ public:
 		ui.btnColorTF->setEnabled(tfControls);
 		ui.btnRemoveTF->setEnabled(tfControls);
 		ui.btnRenameTF->setEnabled(tfControls);
+		ui.radDisplayTF->setEnabled(tfControls);
 		ui.cmbTFSourceMetric->setEnabled(tfControls);
 
 
@@ -251,7 +252,12 @@ public slots:
 
         string filename = qFileName.toUtf8().constData();
         enviHeaderStruct header;
-        header = enviLoadf(&P.cpuData, filename);
+        if(!enviLoadf(header, &P.cpuData, filename))
+	   {
+		   cout<<"Error loading ENVI file."<<endl;
+		   return;
+	   }
+	   
         P.dim = vector3D<unsigned int>(header.samples, header.lines, header.bands);
         P.filename = filename;
         P.currentX = P.dim.x/2;
@@ -295,6 +301,7 @@ public slots:
 
 		//update the UI to reflect the new file
         UpdateMetricList();
+		UpdateTFList();
     }
 
     void on_mnuSaveProject_triggered(){

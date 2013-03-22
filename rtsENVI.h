@@ -19,6 +19,15 @@ struct enviHeaderStruct{
     unsigned int offset;
     unsigned int datatype;
     InterleaveType interleave;
+    
+    enviHeaderStruct()
+    {
+	    samples = 0;
+	    lines = 0;
+	    bands = 0;
+	    offset = 0;
+	    datatype = 0;
+    }
 };
 
 static void enviPrintHeader(enviHeaderStruct h)
@@ -34,12 +43,15 @@ static void enviPrintHeader(enviHeaderStruct h)
 
 }
 
-static enviHeaderStruct enviLoadHeader(string filename)
+static bool enviLoadHeader(enviHeaderStruct &header, string filename)
 {
-    enviHeaderStruct header;
-
     //open the header file for reading
     ifstream infile(filename.c_str());
+    if(!infile)
+    {
+	    cout<<"Error loading header file."<<endl;
+	    return false;
+    }
 
     //search for relavant tokens
     string test, tmp;
@@ -81,27 +93,27 @@ static enviHeaderStruct enviLoadHeader(string filename)
     infile.close();
 
     //return the header structure
-    return header;
+    return true;
 
 }
 
 
-static enviHeaderStruct enviLoadf(float** cpuPtr, string filename, string headername)
+static bool enviLoadf(enviHeaderStruct &header, float** cpuPtr, string filename, string headername)
 {
-    enviHeaderStruct header;
-    header = enviLoadHeader(headername);
+    if(!enviLoadHeader(header, headername))
+	    return false;
 
     //check the file to make sure everything matches up
     struct stat filestats;
     if(stat(filename.c_str(), &filestats) != 0){
-        cout<<"File not found..."<<endl; return header;
+        cout<<"File not found..."<<endl; return false;
     }
     unsigned int dataSize = sizeof(float) * header.samples * header.lines * header.bands;
     int fileSize = dataSize + sizeof(float) * header.offset;
 
     //warn the user if the file size doesn't match up
     if(filestats.st_size < fileSize){
-        cout<<"Error: the binary file is of insufficient size."<<endl; return header;}
+        cout<<"Error: the binary file is of insufficient size."<<endl; return false;}
     if(filestats.st_size > fileSize){
         cout<<"Warning: the binary file is larger than expected."<<endl;}
 
@@ -120,22 +132,29 @@ static enviHeaderStruct enviLoadf(float** cpuPtr, string filename, string header
 
     cout<<headername<<endl;
     enviPrintHeader(header);
-    return header;
+    return true;
 }
 
-static enviHeaderStruct enviLoadf(float** cpuPtr, string filename)
+static bool enviLoadf(enviHeaderStruct &header, float** cpuPtr, string filename)
 {
     //this function is a wrapper which assumes that the name of the ENVI header is the same as the file
 
-    //get the header filename
+    //guess the header file name (check both .hdr and .HDR)
+    struct stat filestats;
     string headername = filename;
-    headername += ".hdr";
+    headername += ".hdr";    
+    if(stat(headername.c_str(), &filestats) != 0){
+        headername = filename;
+	   headername += ".HDR";
+    }
+    if(stat(headername.c_str(), &filestats) != 0)
+    {
+	    cout<<"Header file not found."<<endl;
+	    return false;
+    }
 
-    //load the header information
-    enviHeaderStruct header;
-    header = enviLoadf(cpuPtr, filename, headername);
+    return enviLoadf(header, cpuPtr, filename, headername);
 
-    return header;
 
 }
 

@@ -362,16 +362,18 @@ void qtSpectralWindow::mouseAction(QMouseEvent *event)
 		else
 		{
 			//calculate the band clicked by the user
-            float a = (float)event->pos().x() / (float)width();
+			float a = (float)event->pos().x() / (float)width();
 			if(a < 0) a = 0;
 
 			unsigned int pickedBand;
 			pickedBand = (int)( a * P.dim.z );
-            if(pickedBand >= P.dim.z) pickedBand = P.dim.z - 1;
+			if(pickedBand >= P.dim.z) pickedBand = P.dim.z - 1;
 
 			int m = P.selectedMetric;
 			int b = P.selectedBaselinePoint;
-			P.metricList[m].baselinePoints[b] = pickedBand;
+			
+			if(m < P.metricList.size() && b < P.metricList[m].baselinePoints.size())
+				P.metricList[m].baselinePoints[b] = pickedBand;
 		}
 
         //update the windows and UI

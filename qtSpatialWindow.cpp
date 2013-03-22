@@ -125,6 +125,14 @@ void qtSpatialWindow::drawHUD()
 }
 void qtSpatialWindow::paintGL()
 {
+	glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+
+	//this window will be in the image domain (in pixels)
+	gluOrtho2D(0, P.dim.x, 0, P.dim.y);
+
+    glMatrixMode(GL_MODELVIEW);
+
 	//activate the OpenGL context for this (spatial) window
 	CHECK_OPENGL_ERROR
 	makeCurrent();
@@ -153,13 +161,7 @@ void qtSpatialWindow::resizeGL(int width, int height)
 	makeCurrent();
 	glViewport(0, 0, width, height);
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-
-	//this window will be in the image domain (in pixels)
-	gluOrtho2D(0, P.dim.x, 0, P.dim.y);
-
-    glMatrixMode(GL_MODELVIEW);
+    
 }
 
 void qtSpatialWindow::mouseAction(QMouseEvent *event)

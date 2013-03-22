@@ -115,6 +115,10 @@ void gpuCreateHistogram(histoPrecision** gpuHistogram, GLuint &buffer, cudaGraph
 
 void gpuUploadData(_precision** gpuData, _precision* cpuData, unsigned int samples, unsigned int lines, unsigned int bands)
 {
+	//free any previous memory
+	if(*gpuData != NULL)
+		cudaFree(*gpuData);
+	
 	unsigned int size = sizeof(_precision)*samples*lines*bands;
 	HANDLE_ERROR(cudaMalloc(gpuData, size));
 	HANDLE_ERROR(cudaMemcpy(*gpuData, cpuData, size, cudaMemcpyHostToDevice));

@@ -15,13 +15,16 @@ void gpuComputeMetric(unsigned int m);
 void LoadData(string filename)
 {
     enviHeaderStruct header;
-    header = enviLoadf(&P.cpuData, filename);
+    if(!enviLoadf(header, &P.cpuData, filename))
+    {
+	    cout<<"Error loading ENVI file."<<endl;
+	    return;
+    }
     P.dim = vector3D<unsigned int>(header.samples, header.lines, header.bands);
     P.filename = filename;
     P.currentX = P.dim.x/2;
     P.currentY = P.dim.y/2;
 
-    //copy the data to the GPU
     gpuUploadData(&P.gpuData, P.cpuData, P.dim.x, P.dim.y, P.dim.z);
 
     //create a buffer for the spatial window
@@ -37,6 +40,7 @@ loadStatus LoadProject(string filename)
     string strData;
     int intData;
     int m = -1; //metric counter
+	int t = -1;	//tf counter
 
     //make sure that this is a valid project file
     char prjTest[8];
@@ -44,6 +48,9 @@ loadStatus LoadProject(string filename)
     cout<<prjTest<<endl;
     if(strcmp(prjTest, "SPECVIS") != 0)
         return loadStatusInvalidProject;
+
+	enum inputType {typeMetric, typeTF};
+	inputType inType;
 
     while(!infile.eof())
     {
@@ -65,6 +72,7 @@ loadStatus LoadProject(string filename)
         }
         //if the line specifies a metric
         if(token.find("metric") != string::npos){
+			inType = typeMetric;
             //create a new metric
             metricStruct newMetric;
             //get the metric type
@@ -79,9 +87,41 @@ loadStatus LoadProject(string filename)
             P.metricList.push_back(newMetric);
             m++;    //increment the metric counter
         }
+		 //if the line specifies a transfer function
+        if(token.find("transferfunc") != string::npos){
+			inType = typeTF;
+            //create a new metric
+            transferFuncStruct newTF;
+            //get the metric type
+            convert>>strData;
+            if(token.find("constant") != string::npos)
+                newTF.type = tfConstant;
+            if(token.find("gaussian") != string::npos)
+                newTF.type = tfGaussian;
+			if(token.find("linearup") != string::npos)
+                newTF.type = tfLinearUp;
+            if(token.find("lineardown") != string::npos)
+                newTF.type = tfLinearDown;
+            //get the metric band and bandwidth
+            convert>>newTF.tfMin;
+            convert>>newTF.tfMax;
+			convert>>newTF.sourceMetric;
+			convert>>newTF.r;
+			convert>>newTF.g;
+			convert>>newTF.b;
+            P.tfList.push_back(newTF);
+			P.selectedTF = 0;
+            t++;    //increment the metric counter
+        }
         //add a name to the current metric
         if(token.find("name") != string::npos)
-            convert>>P.metricList[m].name;
+		{
+			if(inType == typeMetric)
+				convert>>P.metricList[m].name;
+			else
+				convert>>P.tfList[t].name;
+		}
+
         //add baseline points
         if(token.find("baseline") != string::npos)
             while(!convert.eof())
@@ -147,6 +187,29 @@ void SaveProject(string filename)
         //output any reference metric
         if(P.metricList[m].reference > -1)
             outfile<<endl<<"     reference "<<P.metricList[m].reference<<" "<<P.metricList[m].refEpsilon;
+
+    }
+    
+    //output each transfer function
+    unsigned int nTF = P.tfList.size();
+    for(unsigned int tf=0; tf<nTF; tf++){
+        //output the token
+        outfile<<endl<<"transferfunc ";
+        //output the metric type
+        if(P.tfList[tf].type == tfConstant)
+            outfile<<"constant ";
+        if(P.tfList[tf].type == tfGaussian)
+            outfile<<"gaussian ";
+	   if(P.tfList[tf].type == tfLinearDown)
+            outfile<<"lineardown ";
+	   if(P.tfList[tf].type == tfLinearUp)
+            outfile<<"linearup ";
+        //output the band and bandwidth
+        outfile<<P.tfList[tf].tfMin<<" "<<P.tfList[tf].tfMax<<" "<<P.tfList[tf].sourceMetric<<" "<<P.tfList[tf].r<<" "<<P.tfList[tf].g<<" "<<P.tfList[tf].b;
+
+        //output the metric name
+        if(P.metricList[tf].name.length())
+            outfile<<endl<<"     name "<<P.tfList[tf].name;
 
     }
 
