@@ -10,3 +10,6 @@ RTS (my personal codebase) https://github.com/dmayerich/RTS
 CUDA http://www.nvidia.com/object/cuda_home_new.html
 
 If CMake is unable to find these, make sure to specify their locations.
+
+Known Bugs:
+  [ ] Will not identify a data file in a project that doesn't exist.
