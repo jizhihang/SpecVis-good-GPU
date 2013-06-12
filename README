@@ -13,3 +13,4 @@ If CMake is unable to find these, make sure to specify their locations.
 
 Known Bugs:
   [ ] Will not identify a data file in a project that doesn't exist.
+  [ ] Load RAW data.
